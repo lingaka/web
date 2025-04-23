@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADCP Real-Time Monitoring</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-blue: #0066cc;
+            --dark-blue: #004d99;
+            --light-blue: #e6f2ff;
+            --accent-blue: #4da6ff;
+            --text-dark: #2c3e50;
+            --text-medium: #4a5568;
+            --text-light: #718096;
+            --white: #ffffff;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+            --border-radius: 8px;
+            --transition: all 0.3s ease;
+        }
+        
+        body {
+            font-family: 'Open Sans', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            color: var(--text-medium);
+            background-image: linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)), 
+                            url('https://usagif.com/wp-content/uploads/2022/hqgif/ocean-wave-53-light-blue-waves.gif');
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+            scroll-behavior: smooth;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            background: var(--white);
+            padding: 2.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, #0066cc, #004d99);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .back-button i {
+            margin-right: 8px;
+        }
+        
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+        
+        header {
+            text-align: center;
+            padding: 2rem 0;
+            margin-bottom: 2.5rem;
+            position: relative;
+        }
+        
+        header::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-blue), var(--accent-blue));
+            margin: 1.5rem auto 0;
+            border-radius: 2px;
+        }
+        
+        h1 {
+            color: var(--primary-blue);
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        
+        .data-panel {
+            background: linear-gradient(135deg, var(--light-blue), #d4e6ff);
+            padding: 2.5rem;
+            border-radius: var(--border-radius);
+            margin: 3rem 0;
+            border: 1px solid var(--accent-blue);
+            box-shadow: var(--shadow-md);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .data-panel::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, var(--primary-blue), var(--accent-blue));
+        }
+        
+        .data-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+        
+        .data-item {
+            background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+            color: var(--white);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .data-item::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.2));
+            z-index: -1;
+        }
+        
+        .data-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .data-value {
+            font-size: 2.2rem;
+            font-weight: 600;
+            margin: 0.75rem 0;
+            font-family: 'Montserrat', sans-serif;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .data-value::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 2px;
+            background: rgba(255,255,255,0.5);
+        }
+        
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 2rem 0;
+            justify-content: center;
+        }
+        
+        button {
+            background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+            color: var(--white);
+            border: none;
+            padding: 0.9rem 1.8rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+            font-family: 'Montserrat', sans-serif;
+            min-width: 200px;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--dark-blue), var(--primary-blue));
+            opacity: 0;
+            transition: var(--transition);
+            z-index: -1;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+        
+        button:hover::before {
+            opacity: 1;
+        }
+        
+        #profileChart {
+            margin-top: 2.5rem;
+            background: var(--white);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1.5rem;
+                margin: 1rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .data-row {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="index2.html" class="back-button">
+        <i class="fas fa-arrow-left"></i>
+        Back to Main
+    </a>
+
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-chart-line"></i> ADCP Real-Time Monitoring</h1>
+            <p>Live ocean current data and environmental conditions</p>
+        </header>
+
+        <div class="data-panel">
+            <h2><i class="fas fa-water" style="margin-right: 15px;"></i>Current Ocean Conditions</h2>
+            <p>Real-time data from acoustic Doppler current profiler deployment</p>
+            
+            <div class="button-group">
+                <button onclick="startStream()"><i class="fas fa-play"></i> Start Stream</button>
+                <button onclick="stopStream()"><i class="fas fa-pause"></i> Pause Stream</button>
+                <button onclick="updateData()"><i class="fas fa-sync-alt"></i> Refresh Data</button>
+            </div>
+            
+            <div class="data-row">
+                <div class="data-item">
+                    <div><i class="fas fa-tachometer-alt"></i> Water Speed</div>
+                    <div class="data-value" id="speed">0.00</div>
+                    <div>m/s</div>
+                </div>
+                <div class="data-item">
+                    <div><i class="fas fa-ruler-vertical"></i> Water Depth</div>
+                    <div class="data-value" id="depth">0.0</div>
+                    <div>meters</div>
+                </div>
+                <div class="data-item">
+                    <div><i class="fas fa-temperature-low"></i> Temperature</div>
+                    <div class="data-value" id="temp">0.0</div>
+                    <div>°C</div>
+                </div>
+            </div>
+            
+            <canvas id="profileChart" width="800" height="400"></canvas>
+        </div>
+    </div>
+    <script>
+        // Chart configuration
+        const ctx = document.getElementById('profileChart').getContext('2d');
+        let profileChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Current Speed (m/s)',
+                    data: [],
+                    borderColor: 'rgba(0, 102, 204, 1)',
+                    backgroundColor: 'rgba(0, 102, 204, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointBackgroundColor: 'rgba(0, 102, 204, 1)',
+                    tension: 0.3,
+                    fill: true
+                }, {
+                    label: 'Temperature (°C)',
+                    data: [],
+                    borderColor: 'rgba(204, 51, 0, 1)',
+                    backgroundColor: 'rgba(204, 51, 0, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    yAxisID: 'y1',
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Depth (m)' },
+                        reverse: true,
+                        grid: { color: 'rgba(0,0,0,0.1)' }
+                    },
+                    y1: {
+                        position: 'right',
+                        beginAtZero: false,
+                        title: { display: true, text: 'Temperature (°C)' },
+                        grid: { drawOnChartArea: false }
+                    },
+                    x: {
+                        title: { display: true, text: 'Current Speed (m/s)' },
+                        grid: { color: 'rgba(0,0,0,0.1)' }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) label += ': ';
+                                label += context.parsed.y.toFixed(2);
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Data simulation variables
+        let streamInterval;
+        const maxDepth = 100;
+        const binCount = 15;
+        let currentTemp = 15.0;
+
+        // Generate realistic oceanographic data
+        function generateData() {
+            const surfaceSpeed = (Math.random() * 1.8 + 0.3).toFixed(2);
+            
+            // Create depth profiles
+            let speedProfile = [];
+            let tempProfile = [];
+            let depthLabels = [];
+            
+            // Thermocline simulation (temperature change with depth)
+            const thermoclineDepth = Math.random() * 40 + 20;
+            currentTemp = currentTemp + (Math.random() * 2 - 1); // Update currentTemp as number
+            const surfaceTemp = currentTemp; // Use the number directly
+            const deepTemp = (currentTemp - (Math.random() * 5 + 5)); // Keep as number
+            
+            for (let i = 0; i < binCount; i++) {
+                const depth = ((i + 1) * (maxDepth / binCount)).toFixed(1);
+                depthLabels.push(depth);
+                
+                // Current speed profile (decreases with depth)
+                const depthRatio = i / binCount;
+                const speed = (surfaceSpeed * (1 - (depthRatio * 0.8)) * (0.9 + Math.random() * 0.2)).toFixed(2);
+                speedProfile.push(speed);
+                
+                // Temperature profile (thermocline effect)
+                let temp;
+                if (depth < thermoclineDepth) {
+                    temp = surfaceTemp - (depth / thermoclineDepth) * (surfaceTemp - deepTemp) * 0.3;
+                } else {
+                    temp = deepTemp + (Math.random() * 0.5 - 0.25);
+                }
+                tempProfile.push(parseFloat(temp.toFixed(1))); // Convert to number after formatting
+            }
+            
+            return {
+                speed: surfaceSpeed,
+                depth: (maxDepth * (0.85 + Math.random() * 0.3)).toFixed(1),
+                temp: surfaceTemp.toFixed(1), // Format only when displaying
+                speedProfile: speedProfile,
+                tempProfile: tempProfile,
+                labels: depthLabels
+            };
+        }
+
+        // Update the display with new data
+        function updateDisplay(data) {
+            document.getElementById('speed').textContent = data.speed;
+            document.getElementById('depth').textContent = data.depth;
+            document.getElementById('temp').textContent = data.temp;
+            
+            profileChart.data.labels = data.labels;
+            profileChart.data.datasets[0].data = data.speedProfile;
+            profileChart.data.datasets[1].data = data.tempProfile;
+            profileChart.update();
+        }
+
+        // Control functions
+        function startStream() {
+            if (streamInterval) clearInterval(streamInterval);
+            updateData(); // Immediate update
+            streamInterval = setInterval(updateData, 2500);
+        }
+
+        function stopStream() {
+            clearInterval(streamInterval);
+        }
+
+        function updateData() {
+            const newData = generateData();
+            updateDisplay(newData);
+        }
+
+        // Initialize with data
+        updateData();
+    </script>
+</body>
+</html>
